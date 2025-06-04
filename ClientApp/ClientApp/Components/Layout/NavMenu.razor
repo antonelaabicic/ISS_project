@@ -1,0 +1,28 @@
+﻿<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">ClientApp</a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="xsd-validation" Match="NavLinkMatch.All">
+                XSD Validation
+            </NavLink>
+        </div>        
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="rng-validation">
+                RNG Validation
+            </NavLink>
+        </div>        
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/keyword-suggestions">
+                Keyword Suggestions API
+            </NavLink>
+        </div>
+    </nav>
+</div>
+

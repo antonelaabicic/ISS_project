@@ -1,0 +1,100 @@
+﻿@page "/rng-validation"
+@using System.Text
+@using System.Text.Json
+@rendermode InteractiveServer
+@inject IHttpClientFactory HttpClientFactory
+
+<h3>RNG XML Validation</h3>
+
+<div>
+    <textarea @bind="@XmlInput" rows="15" cols="80" class="form-control"></textarea>
+</div>
+<br />
+<div>
+    <button class="btn btn-primary" @onclick="ValidateRng">Validate RNG</button>
+</div>
+
+<hr />
+
+@if (ResultStatus != null)
+{
+    <div style="color:@(IsSuccess ? "green" : "red")">
+        <p><strong>Status:</strong> @ResultStatus</p>
+
+        @if (ResultMessages.Any())
+        {
+            <ul>
+                @foreach (var message in ResultMessages)
+                {
+                    <li>@message</li>
+                }
+            </ul>
+        }
+    </div>
+}
+
+@code {
+    private string XmlInput = null!;
+    private string? ResultStatus;
+    private List<string> ResultMessages = new();
+    private bool IsSuccess;
+
+    private async Task ValidateRng()
+    {
+        ResultStatus = null;
+        ResultMessages.Clear();
+
+        try
+        {
+            var client = HttpClientFactory.CreateClient("XsdRngApi");
+            var content = new StringContent(XmlInput, Encoding.UTF8, "application/xml");
+            var response = await client.PostAsync("api/XmlUpload/rng", content);
+            var json = await response.Content.ReadAsStringAsync();
+
+            var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            ResultStatus = root.GetProperty("status").GetString() ?? "unknown";
+
+            if (response.IsSuccessStatusCode)
+            {
+                ResultMessages.Add(root.GetProperty("message").GetString() ?? "Validation succeeded.");
+                IsSuccess = true;
+            }
+            else
+            {
+                if (root.TryGetProperty("errors", out var errors))
+                {
+                    foreach (var error in errors.EnumerateArray())
+                    {
+                        ResultMessages.Add(error.GetString() ?? "Unknown error.");
+                    }
+                }
+                else if (root.TryGetProperty("message", out var message))
+                {
+                    var msg = message.GetString();
+                    if (!string.IsNullOrWhiteSpace(msg) && !ResultMessages.Contains(msg))
+                    {
+                        ResultMessages.Add(msg);
+                    }
+
+                    if (root.TryGetProperty("inner", out var inner))
+                    {
+                        var innerMsg = inner.GetString();
+                        if (!string.IsNullOrWhiteSpace(innerMsg) && !ResultMessages.Contains(innerMsg))
+                        {
+                            ResultMessages.Add(innerMsg);
+                        }
+                    }
+                }
+                IsSuccess = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            ResultStatus = "client_error";
+            ResultMessages.Add($"Client error: {ex.Message}");
+            IsSuccess = false;
+        }
+    }
+}

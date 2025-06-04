@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="keyword_suggestions">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="ideas">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element maxOccurs="unbounded" name="idea">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="difficulty" type="xs:string" />
+                    <xs:element name="keyword" type="xs:string" />
+                    <xs:element name="lastUpdated" type="xs:dateTime" />
+                    <xs:element name="volume">
+                      <xs:complexType>
+                        <xs:simpleContent>
+                          <xs:extension base="xs:string">
+                            <xs:attribute name="null" type="xs:boolean" use="optional" />
+                          </xs:extension>
+                        </xs:simpleContent>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="questions">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element maxOccurs="unbounded" name="question">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="difficulty" type="xs:string" />
+                    <xs:element name="keyword" type="xs:string" />
+                    <xs:element name="lastUpdated" type="xs:string" />
+                    <xs:element name="volume">
+                      <xs:complexType>
+                        <xs:simpleContent>
+                          <xs:extension base="xs:string">
+                            <xs:attribute name="null" type="xs:boolean" use="optional" />
+                          </xs:extension>
+                        </xs:simpleContent>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

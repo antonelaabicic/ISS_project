@@ -1,0 +1,321 @@
+﻿@page "/keyword-suggestions"
+@using System.Net.Http.Json
+@using ClientApp.Dto
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<h2 class="text-primary d-flex justify-content-between align-items-center my-3">
+    Keyword Suggestions
+    <a class="btn btn-success" href="/keyword-suggestions/add">
+        <i class="bi bi-plus-lg"></i> Add Keyword Suggestion
+    </a>
+</h2>
+
+@if (Suggestions == null)
+{
+    <p>Loading...</p>
+}
+else if (!Suggestions.Any())
+{
+    <div class="alert alert-warning">No keyword suggestions found.</div>
+}
+else
+{
+    foreach (var suggestion in Suggestions)
+    {
+        <div class="card border-info mb-4 shadow">
+            <div class="card-header d-flex justify-content-between align-items-center bg-primary text-white">
+                <strong>Keyword Suggestion #@suggestion.Id</strong>
+                <div>
+                    <a class="btn btn-sm btn-light me-2" href="/keyword-suggestions/@suggestion.Id">Details</a>
+                    <button class="btn btn-sm btn-danger" @onclick="() => ShowDeleteDialog(suggestion)">Delete</button>
+                </div>
+            </div>
+            <div class="card-body bg-light">
+                <div class="card-body bg-light">
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="text-secondary">Ideas</h5>
+                            <button class="btn btn-sm btn-outline-primary" @onclick="() => ShowFormPopup(true, null, suggestion.Id ?? 0)">+ Add</button>
+                        </div>
+                        <table class="table table-hover table-sm">
+                            <thead class="table-warning">
+                                <tr>
+                                    <th>Keyword</th>
+                                    <th>Difficulty</th>
+                                    <th>Volume</th>
+                                    <th>Last Updated</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var idea in suggestion.Ideas)
+                                {
+                                    <tr>
+                                        <td>@idea.Keyword</td>
+                                        <td>@idea.Difficulty</td>
+                                        <td>@idea.Volume</td>
+                                        <td>@idea.LastUpdated?.ToString("dd.MM.yyyy HH:mm")</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-info me-1" @onclick="() => ShowFormPopup(true, idea, suggestion.Id ?? 0, true)">Details</button>
+                                            <button class="btn btn-sm btn-warning me-1" @onclick="() => ShowFormPopup(true, idea, suggestion.Id ?? 0)">Edit</button>
+                                            <button class="btn btn-sm btn-danger" @onclick="() => ConfirmDeleteItem(idea.Id, true)">Delete</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="text-secondary">Questions</h5>
+                            <button class="btn btn-sm btn-outline-primary" @onclick="() => ShowFormPopup(false, null, suggestion.Id ?? 0)">+ Add</button>
+                        </div>
+                        <table class="table table-hover table-sm">
+                            <thead class="table-warning">
+                                <tr>
+                                    <th>Keyword</th>
+                                    <th>Difficulty</th>
+                                    <th>Volume</th>
+                                    <th>Last Updated</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var question in suggestion.Questions)
+                                {
+                                    <tr>
+                                        <td>@question.Keyword</td>
+                                        <td>@question.Difficulty</td>
+                                        <td>@question.Volume</td>
+                                        <td>@question.LastUpdated?.ToString("dd.MM.yyyy HH:mm")</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-info me-1" @onclick="() => ShowFormPopup(false, question, suggestion.Id ?? 0, true)">Details</button>
+                                            <button class="btn btn-sm btn-warning me-1" @onclick="() => ShowFormPopup(false, question, suggestion.Id ?? 0)">Edit</button>
+                                            <button class="btn btn-sm btn-danger" @onclick="() => ConfirmDeleteItem(question.Id, false)">Delete</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@if (showDeleteDialog && selectedSuggestion != null)
+{
+    <div class="modal d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Confirm Deletion</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDeleteDialog"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete <strong>Keyword Suggestion #@selectedSuggestion.Id</strong>?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseDeleteDialog">Cancel</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteSuggestion">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@if (showFormDialog)
+{
+    <div class="modal d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header @(formDetailsOnly ? "bg-info" : "bg-primary") text-white">
+                    <h5 class="modal-title">@((formDetailsOnly ? "Details" : formIsNew ? "Add" : "Edit") + (formIsIdea ? " Idea" : " Question"))</h5>
+                    <button type="button" class="btn-close" @onclick="CloseFormPopup"></button>
+                </div>
+                <div class="modal-body">
+                    @if (formIsIdea && formIdeaModel != null)
+                    {
+                        <EditForm Model="@formIdeaModel" OnValidSubmit="SaveForm">
+                            <DataAnnotationsValidator />
+                            <div class="mb-3">
+                                <label>Keyword:</label>
+                                <InputText class="form-control" @bind-Value="formIdeaModel.Keyword" disabled="@formDetailsOnly" />
+                            </div>
+                            <div class="mb-3">
+                                <label>Difficulty:</label>
+                                <InputText class="form-control" @bind-Value="formIdeaModel.Difficulty" disabled="@formDetailsOnly" />
+                            </div>
+                            <div class="mb-3">
+                                <label>Volume:</label>
+                                <InputText class="form-control" @bind-Value="formIdeaModel.Volume" disabled="@formDetailsOnly" />
+                            </div>
+                            <div class="mb-3">
+                                <label>Last Updated:</label>
+                                <InputDate class="form-control" @bind-Value="formIdeaModel.LastUpdated" disabled="@formDetailsOnly" />
+                            </div>
+                            @if (!formDetailsOnly)
+                            {
+                                <div class="text-end">
+                                    <button type="submit" class="btn btn-success">Save</button>
+                                </div>
+                            }
+                        </EditForm>
+                    }
+                    else if (!formIsIdea && formQuestionModel != null)
+                    {
+                        <EditForm Model="@formQuestionModel" OnValidSubmit="SaveForm">
+                            <DataAnnotationsValidator />
+                            <div class="mb-3">
+                                <label>Keyword:</label>
+                                <InputText class="form-control" @bind-Value="formQuestionModel.Keyword" disabled="@formDetailsOnly" />
+                            </div>
+                            <div class="mb-3">
+                                <label>Difficulty:</label>
+                                <InputText class="form-control" @bind-Value="formQuestionModel.Difficulty" disabled="@formDetailsOnly" />
+                            </div>
+                            <div class="mb-3">
+                                <label>Volume:</label>
+                                <InputText class="form-control" @bind-Value="formQuestionModel.Volume" disabled="@formDetailsOnly" />
+                            </div>
+                            <div class="mb-3">
+                                <label>Last Updated:</label>
+                                <InputDate class="form-control" @bind-Value="formQuestionModel.LastUpdated" disabled="@formDetailsOnly" />
+                            </div>
+                            @if (!formDetailsOnly)
+                            {
+                                <div class="text-end">
+                                    <button type="submit" class="btn btn-success">Save</button>
+                                </div>
+                            }
+                        </EditForm>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private List<KeywordSuggestionsDto>? Suggestions;
+    private KeywordSuggestionsDto? selectedSuggestion;
+    private bool showDeleteDialog = false;
+
+    private bool showFormDialog = false;
+    private bool formIsIdea = true;
+    private bool formDetailsOnly = false;
+    private bool formIsNew = true;
+    private int? formSuggestionId;
+
+    private IdeaDto? formIdeaModel;
+    private QuestionDto? formQuestionModel;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSuggestions();
+    }
+
+    private async Task LoadSuggestions()
+    {
+        var client = HttpClientFactory.CreateClient("KeywordSuggestionsApi");
+        Suggestions = await client.GetFromJsonAsync<List<KeywordSuggestionsDto>>("api/keyword-suggestions");
+    }
+
+    private void ShowDeleteDialog(KeywordSuggestionsDto suggestion)
+    {
+        selectedSuggestion = suggestion;
+        showDeleteDialog = true;
+    }
+
+    private void CloseDeleteDialog()
+    {
+        selectedSuggestion = null;
+        showDeleteDialog = false;
+    }
+
+    private async Task ConfirmDeleteSuggestion()
+    {
+        if (selectedSuggestion == null) return;
+        var client = HttpClientFactory.CreateClient("KeywordSuggestionsApi");
+        var response = await client.DeleteAsync($"api/keyword-suggestions/{selectedSuggestion.Id}");
+        if (response.IsSuccessStatusCode) {
+            Suggestions?.Remove(selectedSuggestion);
+        }
+        CloseDeleteDialog();
+    }
+
+    private void ShowFormPopup(bool isIdea, object? item, int suggestionId, bool viewOnly = false)
+    {
+        formIsIdea = isIdea;
+        formDetailsOnly = viewOnly;
+        formIsNew = item == null;
+        formSuggestionId = suggestionId;
+
+        if (isIdea)
+        {
+            formIdeaModel = item as IdeaDto ?? new IdeaDto();
+            formQuestionModel = null;
+        }
+        else
+        {
+            formQuestionModel = item as QuestionDto ?? new QuestionDto();
+            formIdeaModel = null;
+        }
+
+        showFormDialog = true;
+    }
+
+    private void CloseFormPopup()
+    {
+        formIdeaModel = null;
+        formQuestionModel = null;
+        showFormDialog = false;
+        formDetailsOnly = false;
+    }
+
+    private async Task SaveForm()
+    {
+        var client = HttpClientFactory.CreateClient("KeywordSuggestionsApi");
+
+        if (formIsIdea && formIdeaModel != null)
+        {
+            formIdeaModel.LastUpdated ??= DateTime.UtcNow;
+            formIdeaModel.KeywordSuggestionsId = formSuggestionId; 
+            if (formIdeaModel.Id == null) {
+                await client.PostAsJsonAsync("api/ideas", formIdeaModel);
+            }
+            else {
+                await client.PutAsJsonAsync($"api/ideas/{formIdeaModel.Id}", formIdeaModel);
+            }
+        }
+        else if (!formIsIdea && formQuestionModel != null)
+        {
+            formQuestionModel.LastUpdated ??= DateTime.UtcNow;
+            formQuestionModel.KeywordSuggestionsId = formSuggestionId; 
+            if (formQuestionModel.Id == null) {
+                await client.PostAsJsonAsync("api/questions", formQuestionModel); 
+            }
+            else {
+                await client.PutAsJsonAsync($"api/questions/{formQuestionModel.Id}", formQuestionModel);
+            }
+        }
+
+        await LoadSuggestions();
+        CloseFormPopup();
+    }
+
+    private async Task ConfirmDeleteItem(int? id, bool isIdea)
+    {
+        if (id == null) return;
+        var client = HttpClientFactory.CreateClient("KeywordSuggestionsApi");
+        var endpoint = isIdea ? $"api/ideas/{id}" : $"api/questions/{id}";
+        await client.DeleteAsync(endpoint);
+        await LoadSuggestions();
+    }
+}

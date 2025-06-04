@@ -1,0 +1,69 @@
+<grammar xmlns="http://relaxng.org/ns/structure/1.0"
+         datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <start>
+    <element name="keyword_suggestions">
+        <element name="ideas">
+          <zeroOrMore>
+            <element name="idea">
+                <optional>
+                  <element name="difficulty">
+                    <text/>
+                  </element>
+                </optional>
+                <element name="keyword">
+                  <text/>
+                </element>
+                <ref name="lastUpdatedElement"/>
+                <ref name="volumeElement"/>
+            </element>
+          </zeroOrMore>
+        </element>
+
+        <element name="questions">
+          <zeroOrMore>
+            <element name="question">
+                <optional>
+                  <element name="difficulty">
+                    <text/>
+                  </element>
+                </optional>
+                <element name="keyword">
+                  <text/>
+                </element>
+                <optional>
+                  <ref name="lastUpdatedElement"/>
+                </optional>
+                <ref name="volumeElement"/>
+            </element>
+          </zeroOrMore>
+        </element>
+    </element>
+  </start>
+
+  <define name="volumeElement">
+    <choice>
+      <element name="volume">
+        <text/>
+      </element>
+      <element name="volume">
+        <attribute name="null">
+          <value>true</value>
+        </attribute>
+        <empty/>
+      </element>
+    </choice>
+  </define>
+
+  <define name="lastUpdatedElement">
+    <choice>
+      <element name="lastUpdated">
+        <data type="dateTime"/>
+      </element>
+      <element name="lastUpdated">
+        <empty/>
+      </element>
+    </choice>
+  </define>
+
+</grammar>

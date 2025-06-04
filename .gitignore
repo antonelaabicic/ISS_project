@@ -1,0 +1,40 @@
+# Ignore build results
+**/bin/
+**/obj/
+
+# Visual Studio & Rider
+.vs/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# ASP.NET Core secrets
+secrets.json
+
+# Log files
+*.log
+
+# Ignore node_modules if using JS/TS in ClientApp
+**/node_modules/
+
+# Ignore publish artifacts
+**/publish/
+**/wwwroot/dist/
+**/wwwroot/static/
+
+# Ignore generated files
+**/Generated_Code/
+
+# Ignore test results
+TestResults/
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore local SQLite/SQLCE/etc.
+*.db
+*.mdf
+*.ldf
