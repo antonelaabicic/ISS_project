@@ -1,8 +1,10 @@
 ﻿@page "/keyword-suggestions/add"
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 @rendermode InteractiveServer
 @using System.Net.Http.Json
+@using System.Net.Http.Headers
 @using ClientApp.Dto
 
 <h3 class="mb-4">Add Keyword Suggestion</h3>
@@ -12,65 +14,51 @@
     <ValidationSummary />
 
     <div class="row">
+        <!-- Ideas -->
         <div class="col-md-6">
-            <div class="card mb-4 border-primary">
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Ideas</h5>
-                    <button type="button" class="btn btn-sm btn-light" @onclick="AddIdea">+ Add Idea</button>
+            <div class="mb-4 border p-3 rounded border-primary">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5>Ideas</h5>
+                    <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AddIdea">+ Add</button>
                 </div>
-                <div class="card-body">
-                    @foreach (var idea in NewSuggestion.Ideas)
-                    {
-                        <div class="mb-3">
-                            <label class="form-label">Keyword:</label>
-                            <InputText class="form-control" @bind-Value="idea.Keyword" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Difficulty:</label>
-                            <InputText class="form-control" @bind-Value="idea.Difficulty" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Volume:</label>
-                            <InputText class="form-control" @bind-Value="idea.Volume" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Last Updated:</label>
-                            <InputDate class="form-control" @bind-Value="idea.LastUpdated" />
-                        </div>
-                        <hr />
-                    }
-                </div>
+                @foreach (var idea in NewSuggestion.Ideas)
+                {
+                    <div class="mb-3">
+                        <label>Keyword:</label>
+                        <InputText class="form-control" @bind-Value="idea.Keyword" />
+                        <label>Difficulty:</label>
+                        <InputText class="form-control" @bind-Value="idea.Difficulty" />
+                        <label>Volume:</label>
+                        <InputText class="form-control" @bind-Value="idea.Volume" />
+                        <label>Last Updated:</label>
+                        <InputDate class="form-control" @bind-Value="idea.LastUpdated" />
+                    </div>
+                    <hr />
+                }
             </div>
         </div>
 
+        <!-- Questions -->
         <div class="col-md-6">
-            <div class="card mb-4 border-warning">
-                <div class="card-header bg-warning d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Questions</h5>
-                    <button type="button" class="btn btn-sm btn-dark" @onclick="AddQuestion">+ Add Question</button>
+            <div class="mb-4 border p-3 rounded border-warning">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5>Questions</h5>
+                    <button type="button" class="btn btn-sm btn-outline-warning" @onclick="AddQuestion">+ Add</button>
                 </div>
-                <div class="card-body">
-                    @foreach (var question in NewSuggestion.Questions)
-                    {
-                        <div class="mb-3">
-                            <label class="form-label">Keyword:</label>
-                            <InputText class="form-control" @bind-Value="question.Keyword" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Difficulty:</label>
-                            <InputText class="form-control" @bind-Value="question.Difficulty" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Volume:</label>
-                            <InputText class="form-control" @bind-Value="question.Volume" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Last Updated:</label>
-                            <InputDate class="form-control" @bind-Value="question.LastUpdated" />
-                        </div>
-                        <hr />
-                    }
-                </div>
+                @foreach (var question in NewSuggestion.Questions)
+                {
+                    <div class="mb-3">
+                        <label>Keyword:</label>
+                        <InputText class="form-control" @bind-Value="question.Keyword" />
+                        <label>Difficulty:</label>
+                        <InputText class="form-control" @bind-Value="question.Difficulty" />
+                        <label>Volume:</label>
+                        <InputText class="form-control" @bind-Value="question.Volume" />
+                        <label>Last Updated:</label>
+                        <InputDate class="form-control" @bind-Value="question.LastUpdated" />
+                    </div>
+                    <hr />
+                }
             </div>
         </div>
     </div>
@@ -82,36 +70,32 @@
 </EditForm>
 
 @code {
-    private KeywordSuggestionsDto NewSuggestion = new()
-    {
-        Ideas = new(),
-        Questions = new()
-    };
+    private KeywordSuggestionsDto NewSuggestion = new() { Ideas = new(), Questions = new() };
 
-    private void AddIdea()
-    {
-        NewSuggestion.Ideas.Add(new IdeaDto { LastUpdated = DateTime.UtcNow });
-    }
-
-    private void AddQuestion()
-    {
-        NewSuggestion.Questions.Add(new QuestionDto { LastUpdated = DateTime.UtcNow });
-    }
+    private void AddIdea() => NewSuggestion.Ideas.Add(new IdeaDto { LastUpdated = DateTime.UtcNow });
+    private void AddQuestion() => NewSuggestion.Questions.Add(new QuestionDto { LastUpdated = DateTime.UtcNow });
 
     private async Task HandleValidSubmit()
     {
-        var client = HttpClientFactory.CreateClient("KeywordSuggestionsApi");
+        var client = await CreateAuthorizedClient();
         var response = await client.PostAsJsonAsync("api/keyword-suggestions", NewSuggestion);
 
-        if (response.IsSuccessStatusCode)
-        {
+        if (response.IsSuccessStatusCode) {
             NavigateBack();
         }
     }
 
     private void NavigateBack()
     {
-        Navigation.NavigateTo("/keyword-suggestions", forceLoad: false);
+        Navigation.NavigateTo("/keyword-suggestions", forceLoad: true);
         Navigation.Refresh();
+    }
+
+    private async Task<HttpClient> CreateAuthorizedClient()
+    {
+        var token = await JS.InvokeAsync<string>("sessionStorage.getItem", "accessToken");
+        var client = HttpClientFactory.CreateClient("KeywordSuggestionsApi");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        return client;
     }
 }

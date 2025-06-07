@@ -1,0 +1,63 @@
+﻿@page "/login"
+@using ClientApp.Dto
+@using ClientApp.Service
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject AuthStateService AuthState
+@rendermode InteractiveServer
+
+<div class="d-flex justify-content-center align-items-center min-vh-100">
+    <div style="width: 100%; max-width: 400px;">
+        <h3 class="text-center">Login</h3> 
+        @if (!string.IsNullOrWhiteSpace(error))
+        {
+            <div class="alert alert-danger">@error</div>
+        }
+        <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
+            <DataAnnotationsValidator />
+            <div class="mb-3">
+                <label>Email:</label>
+                <InputText class="form-control" @bind-Value="loginModel.Email" />
+            </div>
+            <div class="mb-3">
+                <label>Password:</label>
+                <InputText type="password" class="form-control" @bind-Value="loginModel.Password" />
+            </div>
+            <button class="btn btn-primary w-100">Login</button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private AuthRequestDto loginModel = new();
+    private string? error;
+
+    private async Task HandleLogin()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("KeywordSuggestionsApi");
+            var response = await client.PostAsJsonAsync("auth/login", loginModel);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var tokens = await response.Content.ReadFromJsonAsync<JwtResponseDto>();
+                await JS.InvokeVoidAsync("sessionStorage.setItem", "accessToken", tokens!.AccessToken);
+
+                AuthState.SetLoggedIn(true);
+                Navigation.NavigateTo("/keyword-suggestions", true);
+                Navigation.Refresh();
+            }
+            else
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                error = $"Login failed: {content}";
+            }
+        }
+        catch (Exception ex)
+        {
+            error = $"Exception during login: {ex.Message}";
+        }
+    }
+}

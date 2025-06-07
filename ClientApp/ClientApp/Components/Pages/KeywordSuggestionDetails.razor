@@ -1,9 +1,11 @@
 ﻿@page "/keyword-suggestions/{Id:int}"
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager Navigation
-@rendermode InteractiveServer
+@inject IJSRuntime JS
 @using System.Net.Http.Json
+@using System.Net.Http.Headers
 @using ClientApp.Dto
+@rendermode InteractiveServer
 
 <h2 class="my-4">Keyword Suggestion #@Id</h2>
 
@@ -27,7 +29,7 @@ else
             @foreach (var idea in Suggestion.Ideas)
             {
                 <tr>
-                    <td><strong>@idea.Keyword</strong></td>
+                    <td>@idea.Keyword</td>
                     <td>@idea.Difficulty</td>
                     <td>@idea.Volume</td>
                     <td>@idea.LastUpdated?.ToString("dd.MM.yyyy HH:mm")</td>
@@ -50,7 +52,7 @@ else
             @foreach (var question in Suggestion.Questions)
             {
                 <tr>
-                    <td><strong>@question.Keyword</strong></td>
+                    <td>@question.Keyword</td>
                     <td>@question.Difficulty</td>
                     <td>@question.Volume</td>
                     <td>@question.LastUpdated?.ToString("dd.MM.yyyy HH:mm")</td>
@@ -68,15 +70,43 @@ else
     [Parameter] public int Id { get; set; }
     private KeywordSuggestionsDto? Suggestion;
 
-    protected override async Task OnInitializedAsync()
+    private bool isInitialized = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        var client = HttpClientFactory.CreateClient("KeywordSuggestionsApi");
+        if (firstRender && !isInitialized)
+        {
+            isInitialized = true;
+            try
+            {
+                await LoadDetails();
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Failed to load details: " + ex.Message);
+                Navigation.NavigateTo("/login", true);
+            }
+        }
+    }
+
+    private async Task LoadDetails()
+    {
+        var client = await CreateAuthorizedClient();
         Suggestion = await client.GetFromJsonAsync<KeywordSuggestionsDto>($"api/keyword-suggestions/{Id}");
     }
 
     private void NavigateBack()
     {
-        Navigation.NavigateTo("/keyword-suggestions");
+        Navigation.NavigateTo("/keyword-suggestions", true);
         Navigation.Refresh();
+    }
+
+    private async Task<HttpClient> CreateAuthorizedClient()
+    {
+        var token = await JS.InvokeAsync<string>("sessionStorage.getItem", "accessToken");
+        var client = HttpClientFactory.CreateClient("KeywordSuggestionsApi");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        return client;
     }
 }

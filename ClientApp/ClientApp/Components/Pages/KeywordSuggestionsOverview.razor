@@ -1,8 +1,10 @@
 ﻿@page "/keyword-suggestions"
 @using System.Net.Http.Json
 @using ClientApp.Dto
+@using System.Net.Http.Headers
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 @rendermode InteractiveServer
 
 <h2 class="text-primary d-flex justify-content-between align-items-center my-3">
@@ -216,14 +218,31 @@ else
     private IdeaDto? formIdeaModel;
     private QuestionDto? formQuestionModel;
 
-    protected override async Task OnInitializedAsync()
+    private bool isInitialized = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await LoadSuggestions();
+        if (firstRender && !isInitialized)
+        {
+            isInitialized = true;
+
+            try
+            {
+                await LoadSuggestions();
+                StateHasChanged(); 
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("JSInterop failed: " + ex.Message);
+                Navigation.NavigateTo("/login", forceLoad: true);
+                Navigation.Refresh();
+            }
+        }
     }
 
     private async Task LoadSuggestions()
     {
-        var client = HttpClientFactory.CreateClient("KeywordSuggestionsApi");
+        var client = await CreateAuthorizedClient();
         Suggestions = await client.GetFromJsonAsync<List<KeywordSuggestionsDto>>("api/keyword-suggestions");
     }
 
@@ -241,8 +260,10 @@ else
 
     private async Task ConfirmDeleteSuggestion()
     {
-        if (selectedSuggestion == null) return;
-        var client = HttpClientFactory.CreateClient("KeywordSuggestionsApi");
+        if (selectedSuggestion == null) {
+            return;
+        }
+        var client = await CreateAuthorizedClient();
         var response = await client.DeleteAsync($"api/keyword-suggestions/{selectedSuggestion.Id}");
         if (response.IsSuccessStatusCode) {
             Suggestions?.Remove(selectedSuggestion);
@@ -281,7 +302,7 @@ else
 
     private async Task SaveForm()
     {
-        var client = HttpClientFactory.CreateClient("KeywordSuggestionsApi");
+        var client = await CreateAuthorizedClient();
 
         if (formIsIdea && formIdeaModel != null)
         {
@@ -312,10 +333,20 @@ else
 
     private async Task ConfirmDeleteItem(int? id, bool isIdea)
     {
-        if (id == null) return;
-        var client = HttpClientFactory.CreateClient("KeywordSuggestionsApi");
+        if (id == null) {
+            return;
+        }
+        var client = await CreateAuthorizedClient();
         var endpoint = isIdea ? $"api/ideas/{id}" : $"api/questions/{id}";
         await client.DeleteAsync(endpoint);
         await LoadSuggestions();
+    }
+
+    private async Task<HttpClient> CreateAuthorizedClient()
+    {
+        var token = await JS.InvokeAsync<string>("sessionStorage.getItem", "accessToken");
+        var client = HttpClientFactory.CreateClient("KeywordSuggestionsApi");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        return client;
     }
 }
