@@ -1,10 +1,7 @@
 ﻿@page "/keyword-suggestions/{Id:int}"
-@inject IHttpClientFactory HttpClientFactory
-@inject NavigationManager Navigation
-@inject IJSRuntime JS
-@using System.Net.Http.Json
-@using System.Net.Http.Headers
 @using ClientApp.Dto
+@inject TokenHttpClientService TokenService
+@inject NavigationManager Navigation
 @rendermode InteractiveServer
 
 <h2 class="my-4">Keyword Suggestion #@Id</h2>
@@ -69,7 +66,6 @@ else
 @code {
     [Parameter] public int Id { get; set; }
     private KeywordSuggestionsDto? Suggestion;
-
     private bool isInitialized = false;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -86,27 +82,30 @@ else
             {
                 Console.Error.WriteLine("Failed to load details: " + ex.Message);
                 Navigation.NavigateTo("/login", true);
+                Navigation.Refresh();
             }
         }
     }
 
     private async Task LoadDetails()
     {
-        var client = await CreateAuthorizedClient();
-        Suggestion = await client.GetFromJsonAsync<KeywordSuggestionsDto>($"api/keyword-suggestions/{Id}");
+        var response = await TokenService.TryWithRefresh(client =>
+            client.GetAsync($"api/keyword-suggestions/{Id}")
+        );
+
+        if (response.IsSuccessStatusCode)
+        {
+            Suggestion = await response.Content.ReadFromJsonAsync<KeywordSuggestionsDto>();
+        }
+        else
+        {
+            throw new Exception("Unauthorized or failed to fetch data");
+        }
     }
 
     private void NavigateBack()
     {
         Navigation.NavigateTo("/keyword-suggestions", true);
         Navigation.Refresh();
-    }
-
-    private async Task<HttpClient> CreateAuthorizedClient()
-    {
-        var token = await JS.InvokeAsync<string>("sessionStorage.getItem", "accessToken");
-        var client = HttpClientFactory.CreateClient("KeywordSuggestionsApi");
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        return client;
     }
 }

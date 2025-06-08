@@ -12,9 +12,10 @@ builder.Services.AddHttpClient("XsdRngApi", client =>
 builder.Services.AddHttpClient("KeywordSuggestionsApi", client =>
 {
     client.BaseAddress = new Uri("http://localhost:8080");
-});
+}).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { UseCookies = true });
 
 builder.Services.AddSingleton<AuthStateService>();
+builder.Services.AddScoped<TokenHttpClientService>();
 
 var app = builder.Build();
 

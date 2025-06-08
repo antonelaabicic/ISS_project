@@ -17,3 +17,23 @@
     <a href="" class="reload">Reload</a>
     <a class="dismiss">🗙</a>
 </div>
+
+<script>
+    window.tryRefreshToken = async function () {
+        try {
+            const res = await fetch("http://localhost:8080/auth/refresh", {
+                method: "POST",
+                credentials: "include"
+            });
+
+            if (!res.ok) throw new Error("Refresh failed");
+
+            const data = await res.json();
+            sessionStorage.setItem("accessToken", data.accessToken);
+            return true;
+        } catch (err) {
+            console.error("Refresh failed:", err);
+            return false;
+        }
+    };
+</script>

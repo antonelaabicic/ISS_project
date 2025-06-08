@@ -1,12 +1,27 @@
 ﻿@page "/logout"
 @using ClientApp.Service
-@inject HttpClient Http
-@inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject NavigationManager Navigation
 @inject AuthStateService AuthState
 @rendermode InteractiveServer
 
 <h3>Logging out...</h3>
+
+<script>
+    window.performLogout = async function () {
+        try {
+            await fetch("http://localhost:8080/auth/logout", {
+                method: "POST",
+                credentials: "include" 
+            });
+        } catch (err) {
+            console.error("Logout error:", err);
+        } finally {
+            sessionStorage.removeItem("accessToken");
+            window.location.href = "/login";
+        }
+    };
+</script>
 
 @code {
     private bool _logoutStarted = false;
@@ -16,37 +31,8 @@
         if (firstRender && !_logoutStarted)
         {
             _logoutStarted = true;
-            await PerformLogout();
-        }
-    }
-
-    private async Task PerformLogout()
-    {
-        try
-        {
-            var token = await JS.InvokeAsync<string>("sessionStorage.getItem", "accessToken");
-
-            if (!string.IsNullOrWhiteSpace(token))
-            {
-                var client = HttpClientFactory.CreateClient("KeywordSuggestionsApi");
-                var request = new HttpRequestMessage(HttpMethod.Post, "auth/logout"); 
-                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
-                var response = await client.SendAsync(request); 
-                if (!response.IsSuccessStatusCode)
-                {
-                    Console.Error.WriteLine($"Logout failed: {response.StatusCode}");
-                }
-            }
-
-            await JS.InvokeVoidAsync("sessionStorage.removeItem", "accessToken");
+            await JS.InvokeVoidAsync("performLogout");
             AuthState.SetLoggedIn(false);
-            Navigation.NavigateTo("/login", true);
-        }
-        catch (Exception ex)
-        {
-            Console.Error.WriteLine($"Logout exception: {ex.Message}");
-            Navigation.NavigateTo("/login", true);
         }
     }
 }

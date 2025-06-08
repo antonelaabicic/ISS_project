@@ -1,19 +1,21 @@
 ﻿@page "/login"
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject AuthStateService AuthState
 @using ClientApp.Dto
 @using ClientApp.Service
-@inject IHttpClientFactory HttpClientFactory
-@inject NavigationManager Navigation
-@inject IJSRuntime JS
-@inject AuthStateService AuthState
+@implements IDisposable
 @rendermode InteractiveServer
 
 <div class="d-flex justify-content-center align-items-center min-vh-100">
     <div style="width: 100%; max-width: 400px;">
-        <h3 class="text-center">Login</h3> 
+        <h3 class="text-center">Login</h3>
+
         @if (!string.IsNullOrWhiteSpace(error))
         {
             <div class="alert alert-danger">@error</div>
         }
+
         <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
             <DataAnnotationsValidator />
             <div class="mb-3">
@@ -29,35 +31,71 @@
     </div>
 </div>
 
+<script>
+    let dotNetLoginHelper = null;
+
+    window.setLoginHelper = function (dotNetHelper) {
+        dotNetLoginHelper = dotNetHelper;
+    };
+
+    window.performLogin = async function (loginPayload) {
+        try {
+            const res = await fetch("http://localhost:8080/auth/login", {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(loginPayload)
+            });
+
+            if (!res.ok) {
+                throw new Error("Invalid credentials");
+            }
+
+            const data = await res.json();
+            sessionStorage.setItem("accessToken", data.accessToken);
+
+            if (dotNetLoginHelper) {
+                await dotNetLoginHelper.invokeMethodAsync("NotifyLoggedIn");
+            }
+
+            window.location.href = "/keyword-suggestions";
+        } catch (err) {
+            console.error(err);
+            alert("Login failed: " + err.message);
+        }
+    };
+</script>
+
 @code {
     private AuthRequestDto loginModel = new();
     private string? error;
+    private DotNetObjectReference<Login>? objRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            objRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("setLoginHelper", objRef);
+        }
+    }
 
     private async Task HandleLogin()
     {
-        try
-        {
-            var client = HttpClientFactory.CreateClient("KeywordSuggestionsApi");
-            var response = await client.PostAsJsonAsync("auth/login", loginModel);
+        error = null;
+        await JS.InvokeVoidAsync("performLogin", loginModel);
+    }
 
-            if (response.IsSuccessStatusCode)
-            {
-                var tokens = await response.Content.ReadFromJsonAsync<JwtResponseDto>();
-                await JS.InvokeVoidAsync("sessionStorage.setItem", "accessToken", tokens!.AccessToken);
+    [JSInvokable]
+    public void NotifyLoggedIn()
+    {
+        AuthState.SetLoggedIn(true);
+    }
 
-                AuthState.SetLoggedIn(true);
-                Navigation.NavigateTo("/keyword-suggestions", true);
-                Navigation.Refresh();
-            }
-            else
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                error = $"Login failed: {content}";
-            }
-        }
-        catch (Exception ex)
-        {
-            error = $"Exception during login: {ex.Message}";
-        }
+    public void Dispose()
+    {
+        objRef?.Dispose();
     }
 }
