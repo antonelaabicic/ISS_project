@@ -1,0 +1,165 @@
+﻿@page "/soap"
+@inject HttpClient Http
+@inject IHttpClientFactory HttpClientFactory
+@using FilterService
+@rendermode InteractiveServer
+
+<h2 class="text-primary my-3">SOAP</h2>
+
+@if (isLoading)
+{
+    <div class="d-flex align-items-center my-5">
+        <div class="spinner-border text-primary me-3" role="status"></div>
+        <strong>Loading suggestions, please wait...</strong>
+    </div>
+}
+else
+{
+    <div class="mb-3 d-flex gap-2">
+        <InputText class="form-control"
+                   placeholder="Filter keyword, difficulty, or volume..."
+                   @bind-Value="filterTerm" />
+        <button class="btn btn-primary" @onclick="FilterSuggestions">Search</button>
+        <button class="btn btn-secondary" @onclick="ClearFilter">Clear</button>
+    </div>
+
+    @if (filteredSuggestions == null || !filteredSuggestions.Any())
+    {
+        <div class="alert alert-warning">No keyword suggestions found.</div>
+    }
+    else
+    {
+        foreach (var suggestion in filteredSuggestions)
+        {
+            <div class="card mb-4 border-primary shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <strong>Keyword Suggestion #@suggestion.id</strong>
+                </div>
+                <div class="card-body bg-light">
+                    <h5 class="text-secondary">Ideas</h5>
+                    @if (suggestion.ideas != null && suggestion.ideas.Any())
+                    {
+                        <table class="table table-hover table-sm">
+                            <thead class="table-warning">
+                                <tr>
+                                    <th>Keyword</th>
+                                    <th>Difficulty</th>
+                                    <th>Volume</th>
+                                    <th>Last Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var idea in suggestion.ideas)
+                                {
+                                    <tr>
+                                        <td>@idea.keyword</td>
+                                        <td>@idea.difficulty</td>
+                                        <td>@idea.volume</td>
+                                        <td>@idea.lastUpdated.ToString("dd.MM.yyyy HH:mm")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No ideas available.</p>
+                    }
+
+                    <h5 class="text-secondary mt-4">Questions</h5>
+                    @if (suggestion.questions != null && suggestion.questions.Any())
+                    {
+                        <table class="table table-hover table-sm">
+                            <thead class="table-warning">
+                                <tr>
+                                    <th>Keyword</th>
+                                    <th>Difficulty</th>
+                                    <th>Volume</th>
+                                    <th>Last Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var question in suggestion.questions)
+                                {
+                                    <tr>
+                                        <td>@question.keyword</td>
+                                        <td>@question.difficulty</td>
+                                        <td>@question.volume</td>
+                                        <td>
+                                            @(DateTime.TryParse(question.lastUpdated, out var dt)
+                                                ? dt.ToString("dd.MM.yyyy HH:mm")
+                                                : "")
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No questions available.</p>
+                    }
+                </div>
+            </div>
+        }
+    }
+}
+
+@code {
+    private string filterTerm = string.Empty;
+    private List<KeywordSuggestions> filteredSuggestions = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        await EnsureXmlFileExists();
+        await FilterSuggestions();
+        isLoading = false;
+    }
+
+    private async Task EnsureXmlFileExists()
+    {
+        try
+        {
+            var xsdClient = HttpClientFactory.CreateClient("XsdRngApi");
+            var check = await xsdClient.GetAsync("api/XmlExport/exists");
+
+            if (!check.IsSuccessStatusCode)
+            {
+                await xsdClient.GetAsync("api/XmlExport/xml/all");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine("Error checking/generating XML: " + ex.Message);
+        }
+    }
+
+    private async Task FilterSuggestions()
+    {
+        isLoading = true;
+
+        try
+        {
+            var client = new KeywordFilterServiceClient();
+
+            var response = await client.FilterByTermAsync(filterTerm);
+            filteredSuggestions = response.keyword_suggestions_list?.ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine("Error filtering via SOAP: " + ex.Message);
+            filteredSuggestions = new();
+        }
+
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private async void ClearFilter()
+    {
+        filterTerm = string.Empty;
+        await FilterSuggestions();
+    }
+}

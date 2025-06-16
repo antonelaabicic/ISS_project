@@ -16,6 +16,7 @@ builder.Services.AddScoped<IXmlValidationService, XmlValidationService>();
 builder.Services.AddScoped<IXmlDeserializationService, XmlDeserializationService>();
 builder.Services.AddScoped<IXmlPersistenceService, XmlPersistenceService>();
 builder.Services.AddScoped<IExceptionResponseService, ExceptionResponseService>();
+builder.Services.AddScoped<IXmlExportService, XmlExportService>();
 
 var app = builder.Build();
 

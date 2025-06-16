@@ -18,6 +18,8 @@ namespace XSD.Data
             {
                 entity.ToTable("keyword_suggestions");
 
+                entity.Ignore(k => k.IdSerialized);
+
                 entity.HasKey(k => k.Id);
                 entity.Property(k => k.Id).HasColumnName("id");
 
