@@ -14,6 +14,11 @@ builder.Services.AddHttpClient("KeywordSuggestionsApi", client =>
     client.BaseAddress = new Uri("http://localhost:8080");
 }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { UseCookies = true });
 
+builder.Services.AddHttpClient("JaxbWeatherApi", client =>
+{
+    client.BaseAddress = new Uri("http://localhost:9090/");
+});
+
 builder.Services.AddSingleton<AuthStateService>();
 builder.Services.AddScoped<TokenHttpClientService>();
 

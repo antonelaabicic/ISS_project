@@ -1,5 +1,5 @@
 ﻿@page "/jaxb"
-@inject HttpClient Http
+@inject IHttpClientFactory ClientFactory
 @rendermode InteractiveServer
 
 <h3>JAXB Validation</h3>
@@ -38,7 +38,8 @@
     {
         try
         {
-            Result = await Http.GetFromJsonAsync<ValidationResult>("http://localhost:9090/api/xml/validate");
+            var client = ClientFactory.CreateClient("JaxbWeatherApi");
+            Result = await client.GetFromJsonAsync<ValidationResult>("api/xml/validate");
         }
         catch (Exception ex)
         {

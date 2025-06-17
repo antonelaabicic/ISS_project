@@ -1,0 +1,96 @@
+﻿@page "/dhmz"
+@inject IHttpClientFactory ClientFactory
+@rendermode InteractiveServer
+
+<h3>DHMZ</h3>
+
+<div class="my-3 d-flex align-items-end gap-2" style="max-width: 400px;">
+    <div class="flex-grow-1">
+        <label for="cityInput" class="form-label">Enter city name:</label>
+        <input id="cityInput" @bind="City" class="form-control" placeholder="e.g. Split" />
+    </div>
+    <div>
+        <button @onclick="GetWeather" class="btn btn-primary">Search</button>
+    </div>
+    <div>
+        <button @onclick="Clear" class="btn btn-secondary">Clear</button>
+    </div>
+</div>
+
+@if (Loading)
+{
+    <p>Loading...</p>
+}
+else if (Results is not null)
+{
+    <div class="mt-4 d-flex justify-content-center">
+        <div style="max-width: 500px; width: 100%;">
+            @if (Results.Count == 0)
+            {
+                <p>No results found.</p>
+            }
+            else
+            {
+                <table class="table table-hover text-center table-bordered">
+                    <thead class="table-success">
+                        <tr>
+                            <th>Location</th>
+                            <th>Temperature</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var result in Results)
+                        {
+                            var parts = result.Split(':');
+                            <tr>
+                                <td>@parts[0]</td>
+                                <td>@parts[1]</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+}
+else if (Error is not null)
+{
+    <p class="text-danger mt-3">@Error</p>
+}
+
+@code {
+    public string City { get; set; } = string.Empty;
+    public List<string>? Results { get; set; }
+    public bool Loading { get; set; } = false;
+    public string? Error { get; set; }
+
+    private async Task GetWeather()
+    {
+        Results = null;
+        Error = null;
+        Loading = true;
+
+        try
+        {
+            var client = ClientFactory.CreateClient("JaxbWeatherApi");
+            var response = await client.GetFromJsonAsync<List<string>>($"api/weather?city={Uri.EscapeDataString(City)}");
+
+            Results = response ?? new List<string>();
+        }
+        catch (Exception ex)
+        {
+            Error = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            Loading = false;
+        }
+    }
+
+    private void Clear()
+    {
+        City = string.Empty;
+        Results = null;
+        Error = null;
+    }
+}
