@@ -1,0 +1,52 @@
+﻿@page "/jaxb"
+@inject HttpClient Http
+@rendermode InteractiveServer
+
+<h3>JAXB Validation</h3>
+
+<button @onclick="ValidateXmlAsync" class="btn btn-primary">Validate XML</button>
+
+@if (Result != null)
+{
+    <p class="mt-3">
+        <strong class="@(Result.IsValid ? "text-success" : "text-danger")">
+            @(Result.IsValid ? "XML is valid." : "Validation failed.")
+        </strong>
+    </p>
+
+    @if (!Result.IsValid && Result.Errors?.Count > 0)
+    {
+        <ul class="text-danger">
+            @foreach (var error in Result.Errors)
+            {
+                <li>@error</li>
+            }
+        </ul>
+    }
+}
+
+@code {
+    public class ValidationResult
+    {
+        public bool IsValid { get; set; }
+        public List<string> Errors { get; set; } = new();
+    }
+
+    private ValidationResult? Result;
+
+    private async Task ValidateXmlAsync()
+    {
+        try
+        {
+            Result = await Http.GetFromJsonAsync<ValidationResult>("http://localhost:9090/api/xml/validate");
+        }
+        catch (Exception ex)
+        {
+            Result = new ValidationResult
+                {
+                    IsValid = false,
+                    Errors = new List<string> { ex.Message }
+                };
+        }
+    }
+}

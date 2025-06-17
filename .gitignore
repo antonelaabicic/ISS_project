@@ -38,3 +38,6 @@ Thumbs.db
 *.db
 *.mdf
 *.ldf
+/JAXB/nbproject/private/
+/JAXB/build/
+/JAXB/dist/

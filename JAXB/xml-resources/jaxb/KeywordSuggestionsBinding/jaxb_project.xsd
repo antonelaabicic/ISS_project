@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xs="http://www.w3.org/2001/XMLSchema" attributeFormDefault="unqualified" elementFormDefault="qualified">
+  <xsd:element name="keyword_suggestions_list">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element maxOccurs="unbounded" name="keyword_suggestions">
+          <xsd:complexType>
+            <xsd:sequence>
+              <xsd:element name="ideas">
+                <xsd:complexType>
+                  <xsd:sequence>
+                    <xsd:element maxOccurs="unbounded" name="idea">
+                      <xsd:complexType>
+                        <xsd:sequence>
+                          <xsd:element name="keyword" type="xsd:string" />
+                          <xsd:element name="difficulty" type="xsd:string" />
+                          <xsd:element name="volume" type="xsd:string" />
+                          <xsd:element name="lastUpdated" type="xsd:dateTime" />
+                        </xsd:sequence>
+                      </xsd:complexType>
+                    </xsd:element>
+                  </xsd:sequence>
+                </xsd:complexType>
+              </xsd:element>
+              <xsd:element name="questions">
+                <xsd:complexType>
+                  <xsd:sequence>
+                    <xsd:element maxOccurs="unbounded" name="question">
+                      <xsd:complexType>
+                        <xsd:sequence>
+                          <xsd:element name="keyword" type="xsd:string" />
+                          <xsd:element name="difficulty" type="xsd:string" />
+                          <xsd:element name="volume" type="xsd:string" />
+                          <xsd:element minOccurs="0" name="lastUpdated" type="xsd:dateTime" />
+                        </xsd:sequence>
+                      </xsd:complexType>
+                    </xsd:element>
+                  </xsd:sequence>
+                </xsd:complexType>
+              </xsd:element>
+            </xsd:sequence>
+            <xsd:attribute name="id" type="xsd:unsignedByte" use="required" />
+          </xsd:complexType>
+        </xsd:element>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+</xs:schema>
