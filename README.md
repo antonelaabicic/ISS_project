@@ -6,7 +6,8 @@
 
 Built as an interoperability demo to promote loose coupling, this system uses Ahrefs Keyword Suggestions as a shared data model across REST, SOAP, and XML-RPC components. 
 
-The REST layer exposes a JWT-protected CRUD API with access and refresh tokens for controlled access, and before any record is persisted its XML is validated against both XSD and RELAX NG schemas. The SOAP service provides a search operation over an XML snapshot of the data. Rather than querying the database directly, it evaluates an XPath expression against the XML to select only the elements that meet the chosen criteria. A separate XML-RPC service returns current temperatures from the official [DHMZ feed](<https://vrijeme.hr/hrvatska_n.xml>).
+The REST layer exposes a JWT-protected CRUD API with access and refresh tokens for controlled access, and before any record is persisted its XML is validated against both XSD and RELAX NG schemas. The SOAP service provides a search operation over an XML snapshot of the data. 
+Rather than querying the database directly, it evaluates an XPath expression against the XML to select only the elements that meet the chosen criteria. A separate XML-RPC service returns current temperatures from the official [DHMZ feed](<https://vrijeme.hr/hrvatska_n.xml>).
 
 Client written in Blazor ties everything together by calling all the services to demonstrate their functionalities. 
 
